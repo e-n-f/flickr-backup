@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+
+chdir("images");
+
+while (<>) {
+	if (/url_o="([^"]*)"/) {
+		$url = $1;
+		print "$url\n";
+
+		$file = $url;
+		$file =~ s/^.*\///;
+
+		unless (-s $file) {
+			#system("curl", "-O", "-m", "120", $url);
+			system("curl", "-O", $url);
+		}
+	}
+}
+
+exit;

@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+
+$apikey = "...";
+
+$url = "https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=$apikey&user_id=24431382%40N03&extras=date_taken,geo,tags,date_upload,url_o";
+
+print "$url\n";
+open(IN, "curl -m 60 '$url' |");
+while (<IN>) {
+	$log .= $_;
+	if (/msg=.Sorry, the Flickr API service/) {
+		print;
+		$failed = 1;
+	}
+
+	if (/pages="([0-9]*)"/) {
+		$pages = $1;
+	}
+}
+close(IN);
+
+$failed = 1 if $pages == 0;
+
+print "pages: $pages\n";
+
+for ($page = 2; $page <= $pages && !$failed; $page++) {
+	$url2 = "$url&page=$page";
+	$anything = 0;
+
+	print "$url2\n";
+	open(IN, "curl -m 60 '$url2' |");
+	while (<IN>) {
+		$log .= $_;
+		if (/msg=.Sorry, the Flickr API service/) {
+			print;
+			$failed = 1;
+		}
+		if (/<\/photos>/) {
+			$anything = 1;
+		}
+	}
+	close(IN);
+
+	$failed = 1 if $anything == 0;
+}
+
+if ($failed) {
+	print "FAIL\n";
+}
+
+$when = time;
+open(LOG,">$when.xml");
+print LOG $log;
+close(LOG);
+
+open(FETCH, "|./retrieve-images");
+print FETCH $log;
+close(FETCH);
